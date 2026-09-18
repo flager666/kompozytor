@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harmonic Forge — Generator Melodii i Plików MIDI (Teoria Muzyki)</title>
+  <meta name="description" content="Zaawansowany generator melodii oparty głęboko na teorii muzyki, kontrapunkcie, harmonii funkcyjnej i zasadzie gap-fill, z natychmiastowym eksportem wielościeżkowych plików MIDI.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>🎵</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- Header Section -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>HARMONIC FORGE</h1>
+          <p>Algorytmiczny Generator Melodii & MIDI oparty na Teorii Muzyki V2.0</p>
+        </div>
+        <div class="badge-tag">
+          <span class="badge-dot"></span>
+          <span>26+ PROGRESJI • KONTUR • MOTYWY</span>
+        </div>
+      </div>
+
+      <!-- Quick Style Presets -->
+      <div class="quick-presets">
+        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Style:</span>
+        <button class="preset-chip" id="presetChopin">🎹 Nokturn Chopina</button>
+        <button class="preset-chip" id="presetBach">🎼 Kanon Barokowy</button>
+        <button class="preset-chip" id="presetRoyal">👑 Royal Road (J-Pop)</button>
+        <button class="preset-chip" id="presetJazz">🎷 Jazz Neo-Soul</button>
+        <button class="preset-chip" id="presetEpic">🎻 Epos Filmowy</button>
+        <button class="preset-chip" id="presetModal">🌌 Dorycki Kosmos</button>
+      </div>
+    </header>
+
+    <!-- Master Transport Bar -->
+    <div class="transport-bar">
+      <div class="transport-controls">
+        <button class="btn-transport primary" id="btnPlayPause">
+          <span id="playIcon">▶</span>
+          <span id="playText">Odtwórz</span>
+        </button>
+        <button class="btn-transport" id="btnStop">
+          <span>⏹</span>
+          <span>Zatrzymaj</span>
+        </button>
+        <button class="btn-transport active" id="btnLoop">
+          <span>🔁</span>
+          <span>Pętla</span>
+        </button>
+      </div>
+
+      <div class="transport-tempo">
+        <span class="tempo-label">TEMPO:</span>
+        <div class="tempo-slider-wrap">
+          <input type="range" id="bpmSlider" min="50" max="190" value="120" step="1">
+          <span class="tempo-value" id="bpmValue">120 BPM</span>
+        </div>
+      </div>
+
+      <div class="transport-tempo">
+        <span class="tempo-label">GŁOŚNOŚĆ:</span>
+        <div class="tempo-slider-wrap">
+          <input type="range" id="volSlider" min="0" max="1" value="0.8" step="0.05">
+          <span class="tempo-value" id="volValue">80%</span>
+        </div>
+      </div>
+
+      <div class="bar-counter" id="barCounterDisplay">
+        TAKT: 1.1 / 8
+      </div>
+    </div>
+
+    <!-- Main Studio Grid -->
+    <main class="studio-layout">
+
+      <!-- Left Control Rack -->
+      <aside class="sidebar-rack">
+        
+        <!-- 1. Tonality & Scale -->
+        <div class="rack-section">
+          <div class="rack-title">
+            <span>1. Tonalność i Skala</span>
+            <span class="accent">Tonika & Tryb</span>
+          </div>
+
+          <div class="form-group">
+            <label for="selectKey">Dźwięk podstawowy (Tonika):</label>
+            <select id="selectKey" class="select-custom">
+              <option value="C" selected>C</option>
+              <option value="C#">C# / Db</option>
+              <option value="D">D</option>
+              <option value="D#">D# / Eb</option>
+              <option value="E">E</option>
+              <option value="F">F</option>
+              <option value="F#">F# / Gb</option>
+              <option value="G">G</option>
+              <option value="G#">G# / Ab</option>
+              <option value="A">A</option>
+              <option value="A#">A# / Bb</option>
+              <option value="B">B / H</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="selectScale">Skala muzyczna / Tryb:</label>
+            <select id="selectScale" class="select-custom">
+              <option value="major" selected>Dur (Ionian / Natural Major)</option>
+              <option value="minor">Moll naturalny (Aeolian)</option>
+              <option value="harmonic_minor">Moll harmoniczny (zwiększona VII)</option>
+              <option value="melodic_minor">Moll melodyczny (jazzowy)</option>
+              <option value="dorian">Dorycka (Dorian - miękki jazz/rock)</option>
+              <option value="phrygian">Frygijska (Phrygian - flamenco/mrok)</option>
+              <option value="lydian">Lidyjska (Lydian - filmowy blask)</option>
+              <option value="mixolydian">Miksolidyjska (Mixolydian - blues/folk)</option>
+              <option value="locrian">Lokrycka (Locrian - napięcie trytonowe)</option>
+              <option value="pentatonic_major">Pentatonika durowa</option>
+              <option value="pentatonic_minor">Pentatonika mollowa</option>
+              <option value="blues">Skala bluesowa (z Blue Note)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 2. Harmonic Schemes & Custom Progressions -->
+        <div class="rack-section">
+          <div class="rack-title">
+            <span>2. Schemat Harmoniczny</span>
+            <span class="accent">26+ Progresji</span>
+          </div>
+
+          <div class="form-group">
+            <label for="selectProgression">Wybierz progresję akordową:</label>
+            <select id="selectProgression" class="select-custom">
+              <optgroup label="Pop, Rock & Współczesne Hity">
+                <option value="pop_anthemic" selected>The 4 Chords of Pop (I - V - vi - IV)</option>
+                <option value="royal_road">Royal Road / Odo Saboro (IVmaj7 - V7 - iii7 - vi)</option>
+                <option value="anthem_rock">Anthem Emo / Arena Rock (vi - IV - I - V)</option>
+                <option value="doo_wop_50s">Doo-Wop 50s Ballad (I - vi - IV - V)</option>
+                <option value="indie_folk">Indie Folk (I - IV - vi - V)</option>
+                <option value="sad_ballad">Nastrojowa Ballada Mollowa (vi - IV - I - V)</option>
+              </optgroup>
+
+              <optgroup label="Klasyka, Barok & Renesans">
+                <option value="classical_canon">Kanon Pachelbela (I - V - vi - iii - IV - I - IV - V)</option>
+                <option value="circle_of_fifths">Koło Kwintowe (I - IV - vii° - iii - vi - ii - V - I)</option>
+                <option value="andalusian_cadence">Kadencja Andaluzyjska / La Folia (i - bVII - bVI - V)</option>
+                <option value="neapolitan_cadence">Kadencja Neapolitańska (i - bII - V7 - i)</option>
+                <option value="chaconne_baroque">Barokowa Chaconne (i - V - bVI - V)</option>
+              </optgroup>
+
+              <optgroup label="Jazz, Bebop & Neo-Soul">
+                <option value="jazz_turnaround">Jazz Standards Turnaround (ii7 - V7 - Imaj7 - VI7)</option>
+                <option value="minor_jazz_two_five">Minor ii-V-i (iiø7 - V7alt - i7 - i7)</option>
+                <option value="coltrane_changes">Coltrane Changes (Giant Steps Modulations)</option>
+                <option value="rhythm_changes">Rhythm Changes A-Part (I - vi - ii - V - iii...)</option>
+                <option value="neo_soul">Neo-Soul & R&B (ii9 - V13 - Imaj9)</option>
+                <option value="jazz_blues_12bar">Jazz Blues 12-bar (I7 - IV7 - I7 - V7)</option>
+              </optgroup>
+
+              <optgroup label="Filmowe, Gry & Epos (Cinematic)">
+                <option value="cinematic_epic">Epicki Marsz Mollowy (i - bVI - bIII - bVII)</option>
+                <option value="hollywood_heroic">Hollywoodzki Bohater (I - bVII - IV - I)</option>
+                <option value="space_fantasy">Space Fantasy / Zimmer (i - bVI - iv - V)</option>
+                <option value="dark_souls_gothic">Gotycki Mrok (i - v - bVI - iv)</option>
+                <option value="phrygian_epic">Dramatyczny Frygijski (i - bII - v - i)</option>
+                <option value="post_rock_ambient">Ambient z Mollową Subdominantą (I - iii - IV - iv)</option>
+              </optgroup>
+
+              <optgroup label="Modalne Vampi & Kolory">
+                <option value="dorian_groove">Dorycki Soul/Funk Vamp (i7 - IV7 - i7 - IV7)</option>
+                <option value="lydian_wonder">Lidyjska Przestrzeń (Imaj7 - II7 - Imaj7 - II7)</option>
+                <option value="mixolydian_rock">Miksolidyjski Klasyczny Rock (I - bVII - IV - I)</option>
+                <option value="phrygian_dominant_orient">Frygijska Dominanta / Oriental (I - bII - I - bII)</option>
+              </optgroup>
+
+              <optgroup label="Własna Progresja">
+                <option value="custom">✍️ Własna progresja (wpisz poniżej)...</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="form-group" id="customProgressionWrap" style="display: none;">
+            <label for="customProgressionInput">Wpisz akordy (np. Dm7 - G7 - Cmaj7 - A7 lub rzymskie ii7 - V7 - I):</label>
+            <input type="text" id="customProgressionInput" class="input-custom" value="Dm7 - G7 - Cmaj7 - A7">
+          </div>
+
+          <div class="form-group">
+            <label for="selectBars">Długość frazy (Struktura okresu):</label>
+            <select id="selectBars" class="select-custom">
+              <option value="8" selected>8 taktów (Pełny okres: Pytanie + Odpowiedź)</option>
+              <option value="4">4 takty (Pojedyncza fraza antecedent)</option>
+              <option value="16">16 taktów (Wielki okres dwuczęściowy AABA)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 3. Melodic Contour & Shape -->
+        <div class="rack-section">
+          <div class="rack-title">
+            <span>3. Kształt i Kontur Melodii</span>
+            <span class="accent">Krzywa frazy</span>
+          </div>
+
+          <div class="form-group">
+            <label for="selectContour">Tendencja konturu (Melodic Contour):</label>
+            <select id="selectContour" class="select-custom">
+              <option value="arch" selected>Łuk (Arch) — Wznoszenie, kulminacja i opadanie</option>
+              <option value="ascending">Wznoszący (Ascending) — Budowanie napięcia do finału</option>
+              <option value="descending">Opadający (Descending) — Mocny start, lament i spokój</option>
+              <option value="wave">Fala (Wave) — Falujący ruch rejestrów</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="selectRange">Rozpiętość melodyczna (Tessitura):</label>
+            <select id="selectRange" class="select-custom">
+              <option value="medium" selected>Średnia (1.5 oktawy) — Śpiewna, naturalna</option>
+              <option value="narrow">Wąska (1 oktawa) — Kameralna, intymna</option>
+              <option value="wide">Szeroka (2.5 oktawy) — Wirtuozerska, instrumentalna</option>
+            </select>
+          </div>
+
+          <div class="form-group range-slider-group">
+            <div class="range-header">
+              <span>Ruch sekundowy (Cantabile):</span>
+              <span class="range-val" id="stepRatioVal">75%</span>
+            </div>
+            <input type="range" id="sliderStepRatio" min="40" max="95" value="75" step="5">
+          </div>
+
+          <div class="toggle-row">
+            <span class="toggle-label">Zasada Gap-Fill (Wyrównanie skoku)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleGapFill" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 4. Rhythm, Density & Breathing -->
+        <div class="rack-section">
+          <div class="rack-title">
+            <span>4. Rytmika & "Oddech"</span>
+            <span class="accent">Zagęszczenie</span>
+          </div>
+
+          <div class="form-group">
+            <label for="selectDensity">Gęstość nut (Rhythmic Density):</label>
+            <select id="selectDensity" class="select-custom">
+              <option value="balanced" selected>Zbalansowana (ćwierćnuty i ósemki)</option>
+              <option value="spacious">Rzadka / Śpiewna (półnuty, przestrzeń)</option>
+              <option value="dense">Gęsta / Wirtuozerska (ósemki i szesnastki)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="selectRhythmFeel">Charakter rytmiczny (Groove):</label>
+            <select id="selectRhythmFeel" class="select-custom">
+              <option value="straight" selected>Równy (Straight / Klasyczny)</option>
+              <option value="syncopated">Synkopowany (Groovy / Pop)</option>
+              <option value="triplets">Triolowy (Swing / Jazz feel)</option>
+            </select>
+          </div>
+
+          <div class="form-group range-slider-group">
+            <div class="range-header">
+              <span>Oddech wokalny (Pauzy):</span>
+              <span class="range-val" id="restProbVal">10%</span>
+            </div>
+            <input type="range" id="sliderRestProb" min="0" max="30" value="10" step="5">
+          </div>
+
+          <div class="form-group range-slider-group">
+            <div class="range-header">
+              <span>Dźwięki przejściowe (NCT):</span>
+              <span class="range-val" id="nctDensityVal">35%</span>
+            </div>
+            <input type="range" id="sliderNctDensity" min="10" max="60" value="35" step="5">
+          </div>
+        </div>
+
+        <!-- 5. Motific Techniques & Articulation -->
+        <div class="rack-section">
+          <div class="rack-title">
+            <span>5. Techniki Kompozytorskie</span>
+            <span class="accent">Wariacje</span>
+          </div>
+
+          <div class="toggle-row">
+            <span class="toggle-label">Sekwencja motywiczna (Takt 3 transponowany)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleSequence" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <span class="toggle-label">Inwersja motywu (Odbicie w Następniku)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleInversion">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <span class="toggle-label">Szybkie arpeggia akordowe (Flourishes)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleFlourishes" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="form-group range-slider-group" style="margin-top: 10px;">
+            <div class="range-header">
+              <span>Artykulacja (Staccato ↔ Legato):</span>
+              <span class="range-val" id="articulationVal">90%</span>
+            </div>
+            <input type="range" id="sliderArticulation" min="30" max="98" value="90" step="5">
+          </div>
+        </div>
+
+        <!-- 6. Accompaniment & Sound -->
+        <div class="rack-section">
+          <div class="rack-title">
+            <span>6. Aranżacja & Brzmienie</span>
+            <span class="accent">Synteza</span>
+          </div>
+
+          <div class="form-group">
+            <label for="selectAccompaniment">Styl akompaniamentu harmonicznego:</label>
+            <select id="selectAccompaniment" class="select-custom">
+              <option value="pad" selected>Długie Pady (Sustained Pad)</option>
+              <option value="arpeggio">Klasyczne Arpeggio (Alberti Bass / Harfa)</option>
+              <option value="rhythmic_comp">Rytmiczny Comping (Pop/Neo-Soul stabs)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="selectInstrument">Barwa instrumentu wiodącego (Lead):</label>
+            <select id="selectInstrument" class="select-custom">
+              <option value="piano" selected>🎹 Fortepian Koncertowy (Grand Piano)</option>
+              <option value="rhodes">✨ Neo-Soul Rhodes (FM Bell Tine)</option>
+              <option value="synth_lead">⚡ Analog 80s Synth Lead (Resonant Filter)</option>
+              <option value="chiptune">👾 8-Bit Arcade Chiptune (Retro Square)</option>
+              <option value="pluck">💎 Kryształowa Marimba / Pluck</option>
+              <option value="vibraphone">🎶 Jazzy Wibrafon (Vibraphone & Tremolo)</option>
+              <option value="flute">🍃 Eteryczny Flet Drewniany (Ethereal Flute)</option>
+              <option value="guitar">🎸 Gitara Klasyczna (Acoustic Nylon Guitar)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="selectPadInstrument">Barwa akompaniamentu (Pady / Akordy):</label>
+            <select id="selectPadInstrument" class="select-custom">
+              <option value="warm_analog" selected>🌅 Ciepły Analogowy Pad (Warm Analog Pad)</option>
+              <option value="shimmer">✨ Gwiezdny Pad Shimmer (Ethereal Shimmer)</option>
+              <option value="strings">🎻 Orkiestrowe Smyczki (Symphonic Strings)</option>
+              <option value="brass">🎺 Syntetyczny Brass 80s (80s Synth Brass)</option>
+              <option value="organ">⛪ Organy Kościelne / Sakralne (Pipe Organ)</option>
+              <option value="lofi">☕ Lo-Fi Vintage EP & Chords (Lo-Fi Keys)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="selectBassInstrument">Barwa linii basowej (Bassline):</label>
+            <select id="selectBassInstrument" class="select-custom">
+              <option value="moog" selected>🎛️ Analogowy Moog Synth Bass (Funk / Punch)</option>
+              <option value="sub">🔊 Głęboki Sub-Bass (Deep Sine Sub)</option>
+              <option value="upright">🎻 Akustyczny Kontrabas Jazzowy (Upright Bass)</option>
+              <option value="picked">🎸 Elektryczny Bass Kostkowany (Picked Electric Bass)</option>
+              <option value="acid">🧪 Acid 303 Resonant Bass (TB-303 Slide)</option>
+              <option value="boom808">💣 Trap & Hip-Hop 808 Boom Bass</option>
+            </select>
+          </div>
+
+          <div class="toggle-row">
+            <span class="toggle-label">Partia Melodii (Lead)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleMelody" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <span class="toggle-label">Akompaniament Akordów</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleChords" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <span class="toggle-label">Linia Basu (Walking/Sub)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleBass" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Primary Master Button -->
+        <button class="btn-generate-master" id="btnGenerate">
+          <span>🎲</span>
+          <span>GENERUJ NOWĄ MELODIĘ</span>
+        </button>
+
+      </aside>
+
+      <!-- Center Stage: Piano Roll & MIDI Block Arranger -->
+      <section class="center-stage">
+        
+        <!-- MIDI Block Arranger Toolbar -->
+        <div class="editor-toolbar">
+          <div class="toolbar-group">
+            <span class="toolbar-label">NARZĘDZIE:</span>
+            <button class="btn-tool active" id="toolDraw" title="Kliknij w siatkę, aby postawić klocek">
+              <span>✏️</span>
+              <span>Rysuj Klocki</span>
+            </button>
+            <button class="btn-tool" id="toolSelect" title="Przesuwaj lub rozciągaj klocki">
+              <span>↔️</span>
+              <span>Przesuń / Rozciągnij</span>
+            </button>
+            <button class="btn-tool" id="toolErase" title="Kliknij klocek, aby go usunąć (lub kliknij Prawym Przyciskiem)">
+              <span>🗑️</span>
+              <span>Gumka</span>
+            </button>
+          </div>
+
+          <div class="toolbar-group">
+            <span class="toolbar-label">SIATKA:</span>
+            <select id="selectSnap" class="select-tool">
+              <option value="0.25">1/16 (Szesnastka)</option>
+              <option value="0.5" selected>1/8 (Ósemka)</option>
+              <option value="1.0">1/4 (Ćwierćnuta)</option>
+              <option value="2.0">1/2 (Półnuta)</option>
+            </select>
+          </div>
+
+          <div class="toolbar-group">
+            <span class="toolbar-label">WSTAW KLOCEK:</span>
+            <button class="btn-tool-chip" id="btnInsertArp" title="Wstaw 4-nutowy klocek arpeggio akordu">
+              <span>+ Arpeggio</span>
+            </button>
+            <button class="btn-tool-chip" id="btnInsertRun" title="Wstaw 4-nutowy przebieg po skali">
+              <span>+ Przebieg Gamowy</span>
+            </button>
+            <button class="btn-tool-chip" id="btnInsertCadence" title="Wstaw 3-nutową kadencję na tonikę">
+              <span>+ Kadencja Finałowa</span>
+            </button>
+          </div>
+
+          <div class="toolbar-group actions">
+            <button class="btn-tool-action" id="btnSnapScale" title="Dopasuj wszystkie ułożone klocki do dźwięków wybranej tonacji">
+              <span>🎯</span>
+              <span>Do Skali</span>
+            </button>
+            <button class="btn-tool-action" id="btnUndo" title="Cofnij ostatnią zmianę">
+              <span>↩️</span>
+              <span>Cofnij</span>
+            </button>
+            <button class="btn-tool-action danger" id="btnClearNotes" title="Wyczyść wszystkie klocki i zacznij od pustej siatki">
+              <span>🧹</span>
+              <span>Wyczyść</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="piano-roll-viewport">
+          <div class="piano-roll-container" id="pianoRollContainer"></div>
+        </div>
+
+        <!-- Music Theory Color Legend -->
+        <div class="legend-bar">
+          <div class="legend-item">
+            <span class="legend-color" style="background: #00e5ff;"></span>
+            <span>Nuta Akordowa</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #fb8500;"></span>
+            <span>Nuta Przejściowa (Passing)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #06d6a0;"></span>
+            <span>Nuta Pomocnicza (Neighbor)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #ef476f;"></span>
+            <span>Opóźnienie (Suspension)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #48cae4;"></span>
+            <span>Wyrównanie Gap-Fill</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #f72585;"></span>
+            <span>Kulminacja (Climax)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #ffd166;"></span>
+            <span>Kadencja Końcowa</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Theory Inspector & MIDI Export -->
+      <aside class="sidebar-inspector">
+        
+        <!-- MIDI Export Center -->
+        <div class="rack-section">
+          <div class="rack-title">
+            <span>Eksport MIDI</span>
+            <span class="accent">SMF Type 1</span>
+          </div>
+          <p style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4;">
+            Pobierz profesjonalny, wielościeżkowy plik MIDI gotowy do przeciągnięcia do FL Studio, Ableton, Logic, Cubase lub Reaper.
+          </p>
+          <button class="btn-download-midi" id="btnDownloadMidi">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+            </svg>
+            <span>POBIERZ PLIK .MID</span>
+          </button>
+        </div>
+
+        <!-- Metrics Dashboard -->
+        <div class="rack-section">
+          <div class="rack-title">
+            <span>Statystyki Melodii</span>
+            <span class="accent">Analiza</span>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-val" id="metricNotesCount">0</div>
+              <div class="metric-label">Liczba Nut</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-val" id="metricChordToneRatio">0%</div>
+              <div class="metric-label">Nuty Akordowe</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-val" id="metricStepRatio">0%</div>
+              <div class="metric-label">Ruch Sekundowy</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-val" id="metricClimaxPitch">-</div>
+              <div class="metric-label">Kulminacja</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Music Theory Explanation -->
+        <div class="rack-section">
+          <div class="rack-title">
+            <span>Aktywne Reguły</span>
+            <span class="accent">Teoria</span>
+          </div>
+          <div class="theory-list">
+            <div class="theory-item">
+              <div class="theory-item-title">⚖️ Struktura Pytanie–Odpowiedź</div>
+              <div class="theory-item-desc">Poprzednik zawiesza frazę na półkadencji (pytanie), a następnik zamyka ją pełną toniką (odpowiedź).</div>
+            </div>
+            <div class="theory-item">
+              <div class="theory-item-title">🌊 Zasada Meyer-Lerdahl (Gap-Fill)</div>
+              <div class="theory-item-desc">Każdy skok powyżej tercji jest natychmiast równoważony ruchem sekundowym w przeciwną stronę.</div>
+            </div>
+            <div class="theory-item">
+              <div class="theory-item-title">⛰️ Złoty Podział Kulminacji</div>
+              <div class="theory-item-desc">Pojedynczy szczyt melodyczny zaplanowany pod wybrany kształt konturu.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CLI Command Copy -->
+        <div class="rack-section">
+          <div class="rack-title">
+            <span>Polecenie Python CLI</span>
+            <span class="accent">Terminal</span>
+          </div>
+          <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 6px;">Możesz wygenerować ten sam plik w konsoli:</p>
+          <div class="cli-preview" id="cliPreviewText">python melody_generator.py --key C --scale major</div>
+        </div>
+
+      </aside>
+
+    </main>
+
+  </div>
+
+  <!-- Application Entry Point -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
