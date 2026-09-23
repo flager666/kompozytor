@@ -36,6 +36,9 @@ export class PianoRoll {
     this.currentBeat = 0;
     this.hoveredNote = null;
 
+    // Multi-track Arranger State ('melody' | 'chords' | 'bass')
+    this.activeTrack = options.activeTrack || 'melody';
+
     // Viewport bounds
     this.minPitch = 55; // G3
     this.maxPitch = 86; // D6
@@ -69,6 +72,74 @@ export class PianoRoll {
     this.resize();
   }
 
+  getActiveNotes() {
+    if (!this.composition) return [];
+    if (this.activeTrack === 'chords') {
+      if (!this.composition.chordNotes) this.composition.chordNotes = [];
+      return this.composition.chordNotes;
+    }
+    if (this.activeTrack === 'bass') {
+      if (!this.composition.bassNotes) this.composition.bassNotes = [];
+      return this.composition.bassNotes;
+    }
+    if (!this.composition.melodyNotes) this.composition.melodyNotes = [];
+    return this.composition.melodyNotes;
+  }
+
+  setActiveNotes(notes) {
+    if (!this.composition) return;
+    if (this.activeTrack === 'chords') {
+      this.composition.chordNotes = notes;
+    } else if (this.activeTrack === 'bass') {
+      this.composition.bassNotes = notes;
+    } else {
+      this.composition.melodyNotes = notes;
+    }
+  }
+
+  setActiveTrack(trackName) {
+    if (this.activeTrack === trackName) return;
+    this.activeTrack = trackName;
+    this.selectedIndices.clear();
+    this.hoveredNote = null;
+    this.autoFitPitchRange();
+    this.draw();
+  }
+
+  autoFitPitchRange() {
+    if (!this.composition) return;
+    const notes = this.getActiveNotes();
+    if (notes && notes.length > 0) {
+      const pitches = notes.map(n => n.pitch);
+      const minP = Math.min(...pitches);
+      const maxP = Math.max(...pitches);
+
+      if (this.activeTrack === 'bass') {
+        this.minPitch = Math.max(24, Math.min(minP - 3, 33)); // ~A0 / A1
+        this.maxPitch = Math.min(72, Math.max(maxP + 3, 57)); // ~A3
+      } else if (this.activeTrack === 'chords') {
+        this.minPitch = Math.max(36, Math.min(minP - 3, 48)); // ~C3
+        this.maxPitch = Math.min(88, Math.max(maxP + 3, 76)); // ~E5
+      } else {
+        // melody / lead
+        this.minPitch = Math.max(48, Math.min(minP - 3, 55)); // ~G3
+        this.maxPitch = Math.min(96, Math.max(maxP + 3, 86)); // ~D6
+      }
+    } else {
+      // Defaults when empty
+      if (this.activeTrack === 'bass') {
+        this.minPitch = 28; // E1
+        this.maxPitch = 57; // A3
+      } else if (this.activeTrack === 'chords') {
+        this.minPitch = 48; // C3
+        this.maxPitch = 76; // E5
+      } else {
+        this.minPitch = 55; // G3
+        this.maxPitch = 86; // D6
+      }
+    }
+  }
+
   setTool(tool) {
     this.currentTool = tool;
     this.draw();
@@ -96,11 +167,7 @@ export class PianoRoll {
   setComposition(comp) {
     this.composition = comp;
     this.selectedIndices.clear();
-    if (comp && comp.melodyNotes && comp.melodyNotes.length > 0) {
-      const pitches = comp.melodyNotes.map(n => n.pitch);
-      this.minPitch = Math.max(36, Math.min(...pitches) - 3);
-      this.maxPitch = Math.min(96, Math.max(...pitches) + 3);
-    }
+    this.autoFitPitchRange();
     this.draw();
   }
 
@@ -133,7 +200,9 @@ export class PianoRoll {
   }
 
   _findNoteAt(x, y) {
-    if (!this.composition || !this.composition.melodyNotes) return null;
+    if (!this.composition) return null;
+    const notes = this.getActiveNotes();
+    if (!notes || notes.length === 0) return null;
 
     const gridW = this.width - this.leftGutter;
     const gridH = this.height - this.topGutter;
@@ -142,8 +211,8 @@ export class PianoRoll {
     const pitchCount = this.maxPitch - this.minPitch + 1;
     const pitchH = gridH / pitchCount;
 
-    for (let i = this.composition.melodyNotes.length - 1; i >= 0; i--) {
-      const note = this.composition.melodyNotes[i];
+    for (let i = notes.length - 1; i >= 0; i--) {
+      const note = notes[i];
       const nx = this.leftGutter + note.startBeat * beatW;
       const nw = Math.max(6, note.durationBeats * beatW - 2);
       const ny = this.topGutter + (this.maxPitch - note.pitch) * pitchH + 1;
@@ -158,9 +227,10 @@ export class PianoRoll {
   }
 
   deleteSelectedNotes() {
-    if (!this.composition || !this.composition.melodyNotes || this.selectedIndices.size === 0) return;
-
-    this.composition.melodyNotes = this.composition.melodyNotes.filter((_, idx) => !this.selectedIndices.has(idx));
+    if (!this.composition || this.selectedIndices.size === 0) return;
+    const notes = this.getActiveNotes();
+    const updated = notes.filter((_, idx) => !this.selectedIndices.has(idx));
+    this.setActiveNotes(updated);
     this.selectedIndices.clear();
     this.hoveredNote = null;
     this.draw();
@@ -196,7 +266,8 @@ export class PianoRoll {
       if (e.button === 2) {
         this.isRightClickSwiping = true;
         if (hit) {
-          this.composition.melodyNotes.splice(hit.index, 1);
+          const notes = this.getActiveNotes();
+          notes.splice(hit.index, 1);
           this.selectedIndices.delete(hit.index);
           this.hoveredNote = null;
           this.draw();
@@ -233,7 +304,8 @@ export class PianoRoll {
         // 4. Eraser tool
         if (this.currentTool === 'erase') {
           if (hit) {
-            this.composition.melodyNotes.splice(hit.index, 1);
+            const notes = this.getActiveNotes();
+            notes.splice(hit.index, 1);
             this.selectedIndices.delete(hit.index);
             this.hoveredNote = null;
             this.draw();
@@ -263,12 +335,13 @@ export class PianoRoll {
 
             // Store initial positions for all selected notes
             this.multiDragInitial.clear();
+            const notes = this.getActiveNotes();
             this.selectedIndices.forEach(idx => {
-              const n = this.composition.melodyNotes[idx];
+              const n = notes[idx];
               if (n) this.multiDragInitial.set(idx, { startBeat: n.startBeat, pitch: n.pitch });
             });
 
-            if (this.onNotePreview) this.onNotePreview(hit.note.pitch);
+            if (this.onNotePreview) this.onNotePreview(hit.note.pitch, this.activeTrack);
           }
           this.draw();
           return;
@@ -279,25 +352,30 @@ export class PianoRoll {
 
         if (this.currentTool === 'draw' || this.currentTool === 'select') {
           const { beat, pitch } = this._screenToMusical(x, y);
-          const role = analyzeNoteRole(pitch, beat, this.composition.chords, this.composition.keyRoot, this.composition.scalePcs);
+          let role = 'chord_tone';
+          if (this.activeTrack === 'melody') {
+            role = analyzeNoteRole(pitch, beat, this.composition.chords, this.composition.keyRoot, this.composition.scalePcs);
+          }
+
+          const defaultDur = this.activeTrack === 'chords' ? Math.max(1.0, this.snap) : (this.activeTrack === 'bass' ? Math.max(0.5, this.snap) : this.snap);
 
           const newNote = {
             pitch,
             startBeat: beat,
-            durationBeats: this.snap,
-            velocity: 95,
+            durationBeats: defaultDur,
+            velocity: this.activeTrack === 'bass' ? 100 : (this.activeTrack === 'chords' ? 85 : 95),
             role,
             noteName: midiToNoteName(pitch)
           };
 
-          if (!this.composition.melodyNotes) this.composition.melodyNotes = [];
-          this.composition.melodyNotes.push(newNote);
-          const newIdx = this.composition.melodyNotes.length - 1;
+          const notes = this.getActiveNotes();
+          notes.push(newNote);
+          const newIdx = notes.length - 1;
           this.activeNoteIndex = newIdx;
           this.selectedIndices.add(newIdx);
           this.isResizingNote = true; // Dragging immediately stretches duration
 
-          if (this.onNotePreview) this.onNotePreview(pitch);
+          if (this.onNotePreview) this.onNotePreview(pitch, this.activeTrack);
           this.draw();
           if (this.onCompositionChange) this.onCompositionChange(this.composition);
         }
@@ -312,8 +390,9 @@ export class PianoRoll {
       // Swipe erase with right click
       if (this.isRightClickSwiping) {
         const hit = this._findNoteAt(x, y);
-        if (hit && this.composition && this.composition.melodyNotes) {
-          this.composition.melodyNotes.splice(hit.index, 1);
+        if (hit && this.composition) {
+          const notes = this.getActiveNotes();
+          notes.splice(hit.index, 1);
           this.selectedIndices.delete(hit.index);
           this.hoveredNote = null;
           this.draw();
@@ -332,7 +411,8 @@ export class PianoRoll {
 
       // Resizing note
       if (this.isMouseDown && this.isResizingNote && this.activeNoteIndex !== -1 && this.composition) {
-        const note = this.composition.melodyNotes[this.activeNoteIndex];
+        const notes = this.getActiveNotes();
+        const note = notes[this.activeNoteIndex];
         if (note) {
           const { beat } = this._screenToMusical(x, y);
           const newDur = Math.max(this.snap, this.snapBeat(beat - note.startBeat + this.snap));
@@ -346,6 +426,7 @@ export class PianoRoll {
       if (this.isMouseDown && this.isDraggingNote && this.activeNoteIndex !== -1 && this.composition) {
         const { beat, pitch } = this._screenToMusical(x, y);
         const anchorInitial = this.multiDragInitial.get(this.activeNoteIndex);
+        const notes = this.getActiveNotes();
 
         if (anchorInitial) {
           const deltaBeats = this.snapBeat(beat - anchorInitial.startBeat);
@@ -354,23 +435,25 @@ export class PianoRoll {
 
           this.selectedIndices.forEach(idx => {
             const init = this.multiDragInitial.get(idx);
-            const n = this.composition.melodyNotes[idx];
+            const n = notes[idx];
             if (init && n) {
               n.startBeat = Math.max(0, Math.min(totalBeats - n.durationBeats, init.startBeat + deltaBeats));
               const newPitch = Math.max(this.minPitch, Math.min(this.maxPitch, init.pitch + deltaPitch));
               if (newPitch !== n.pitch) {
                 n.pitch = newPitch;
                 n.noteName = midiToNoteName(newPitch);
-                n.role = analyzeNoteRole(newPitch, n.startBeat, this.composition.chords, this.composition.keyRoot, this.composition.scalePcs);
+                if (this.activeTrack === 'melody') {
+                  n.role = analyzeNoteRole(newPitch, n.startBeat, this.composition.chords, this.composition.keyRoot, this.composition.scalePcs);
+                }
               }
             }
           });
 
           // Play preview if anchor pitch moved
-          const anchorNote = this.composition.melodyNotes[this.activeNoteIndex];
+          const anchorNote = notes[this.activeNoteIndex];
           if (anchorNote && anchorNote.pitch !== this.lastPreviewPitch) {
             this.lastPreviewPitch = anchorNote.pitch;
-            if (this.onNotePreview) this.onNotePreview(anchorNote.pitch);
+            if (this.onNotePreview) this.onNotePreview(anchorNote.pitch, this.activeTrack);
           }
 
           this.draw();
@@ -399,8 +482,9 @@ export class PianoRoll {
           this.multiDragInitial.clear();
           this.lastPreviewPitch = null;
 
-          if (this.composition && this.composition.melodyNotes) {
-            this.composition.melodyNotes.sort((a, b) => a.startBeat - b.startBeat);
+          if (this.composition) {
+            const notes = this.getActiveNotes();
+            notes.sort((a, b) => a.startBeat - b.startBeat);
             if (this.onCompositionChange) this.onCompositionChange(this.composition);
           }
           this.draw();
@@ -416,7 +500,7 @@ export class PianoRoll {
   }
 
   _updateMarqueeSelection() {
-    if (!this.composition || !this.composition.melodyNotes) return;
+    if (!this.composition) return;
 
     const x1 = Math.min(this.marqueeStart.x, this.marqueeCurrent.x);
     const x2 = Math.max(this.marqueeStart.x, this.marqueeCurrent.x);
@@ -431,8 +515,9 @@ export class PianoRoll {
     const pitchH = gridH / pitchCount;
 
     this.selectedIndices.clear();
+    const notes = this.getActiveNotes();
 
-    this.composition.melodyNotes.forEach((note, idx) => {
+    notes.forEach((note, idx) => {
       const nx = this.leftGutter + note.startBeat * beatW;
       const nw = Math.max(6, note.durationBeats * beatW - 2);
       const ny = this.topGutter + (this.maxPitch - note.pitch) * pitchH + 1;
@@ -603,34 +688,61 @@ export class PianoRoll {
       }
     }
 
-    // 5. Harmony Chords
-    if (this.composition.chordNotes) {
-      this.composition.chordNotes.forEach(cn => {
-        if (cn.pitch >= this.minPitch && cn.pitch <= this.maxPitch) {
-          const nx = this.leftGutter + cn.startBeat * beatW;
-          const nw = cn.durationBeats * beatW - 2;
-          const ny = this.topGutter + (this.maxPitch - cn.pitch) * pitchH + 1;
-          const nh = pitchH - 2;
+    // 5. Ghost Notes for Inactive Tracks (DAW-style background guide)
+    const drawGhostNotes = (notesList, fillColor, strokeColor) => {
+      if (!notesList) return;
+      notesList.forEach(gn => {
+        if (gn.pitch >= this.minPitch && gn.pitch <= this.maxPitch) {
+          const nx = this.leftGutter + gn.startBeat * beatW;
+          const nw = Math.max(4, gn.durationBeats * beatW - 2);
+          const ny = this.topGutter + (this.maxPitch - gn.pitch) * pitchH + 1;
+          const nh = Math.max(3, pitchH - 2);
 
-          ctx.fillStyle = 'rgba(129, 140, 248, 0.12)';
-          ctx.strokeStyle = 'rgba(129, 140, 248, 0.28)';
+          ctx.fillStyle = fillColor;
+          ctx.strokeStyle = strokeColor;
           ctx.lineWidth = 0.8;
           this._roundRect(ctx, nx, ny, nw, nh, 3);
           ctx.fill();
           ctx.stroke();
+
+          if (nw > 22 && nh > 9) {
+            ctx.fillStyle = strokeColor;
+            ctx.font = '9px "Inter", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(gn.noteName || '', nx + nw / 2, ny + nh * 0.72);
+          }
         }
       });
+    };
+
+    if (this.activeTrack !== 'chords') {
+      drawGhostNotes(this.composition.chordNotes, 'rgba(129, 140, 248, 0.12)', 'rgba(129, 140, 248, 0.32)');
+    }
+    if (this.activeTrack !== 'bass') {
+      drawGhostNotes(this.composition.bassNotes, 'rgba(251, 133, 0, 0.12)', 'rgba(251, 133, 0, 0.32)');
+    }
+    if (this.activeTrack !== 'melody') {
+      drawGhostNotes(this.composition.melodyNotes, 'rgba(0, 229, 255, 0.12)', 'rgba(0, 229, 255, 0.32)');
     }
 
-    // 6. Draw Melody Notes (Interactive MIDI Blocks)
-    if (this.composition.melodyNotes) {
-      this.composition.melodyNotes.forEach((n, idx) => {
+    // 6. Draw Active Track Notes (Interactive MIDI Blocks)
+    const activeNotes = this.getActiveNotes();
+    if (activeNotes && activeNotes.length > 0) {
+      activeNotes.forEach((n, idx) => {
         const nx = this.leftGutter + n.startBeat * beatW;
         const nw = Math.max(6, n.durationBeats * beatW - 2);
         const ny = this.topGutter + (this.maxPitch - n.pitch) * pitchH + 1;
         const nh = Math.max(4, pitchH - 2);
 
-        const colorCfg = ROLE_COLORS[n.role] || ROLE_COLORS.chord_tone;
+        let colorCfg;
+        if (this.activeTrack === 'chords') {
+          colorCfg = { fill: '#818cf8', stroke: '#a5b4fc', label: 'Akord / Pad' };
+        } else if (this.activeTrack === 'bass') {
+          colorCfg = { fill: '#fb8500', stroke: '#ffb703', label: 'Linia Basu' };
+        } else {
+          colorCfg = ROLE_COLORS[n.role] || ROLE_COLORS.chord_tone;
+        }
+
         const isActive = (this.currentBeat >= n.startBeat && this.currentBeat < n.startBeat + n.durationBeats);
         const isHovered = (this.hoveredNote && this.hoveredNote.index === idx);
         const isSelected = this.selectedIndices.has(idx);
@@ -645,7 +757,8 @@ export class PianoRoll {
         }
 
         ctx.fillStyle = isActive ? '#ffffff' : (isSelected ? '#fff' : colorCfg.fill);
-        ctx.strokeStyle = isSelected ? '#00e5ff' : (isHovered ? '#ffffff' : colorCfg.stroke);
+        const selectStroke = this.activeTrack === 'chords' ? '#c7d2fe' : (this.activeTrack === 'bass' ? '#ffd166' : '#00e5ff');
+        ctx.strokeStyle = isSelected ? selectStroke : (isHovered ? '#ffffff' : colorCfg.stroke);
         ctx.lineWidth = isSelected ? 2.5 : (isHovered ? 2.0 : 1.2);
 
         this._roundRect(ctx, nx, ny, nw, nh, 4);
@@ -653,10 +766,10 @@ export class PianoRoll {
         ctx.stroke();
 
         // Right Edge Resize Handle Indicator
-        ctx.fillStyle = isHovered || isSelected ? 'rgba(0, 229, 255, 0.8)' : 'rgba(0,0,0,0.35)';
+        ctx.fillStyle = isHovered || isSelected ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0,0,0,0.35)';
         ctx.fillRect(nx + nw - 4, ny + 2, 2, nh - 4);
 
-        if (nw > 20 && nh > 10) {
+        if (nw > 18 && nh > 10) {
           ctx.shadowBlur = 0;
           ctx.fillStyle = isActive || isSelected ? '#000000' : '#0a0d16';
           ctx.font = `bold ${Math.max(9, Math.min(11, nh * 0.72))}px "Inter", sans-serif`;
@@ -715,9 +828,19 @@ export class PianoRoll {
 
   _drawTooltip(ctx, hoverData) {
     const { note, nx, nw, ny } = hoverData;
-    const colorCfg = ROLE_COLORS[note.role] || ROLE_COLORS.chord_tone;
+    let colorCfg;
+    let trackLabel = 'Lead';
+    if (this.activeTrack === 'chords') {
+      trackLabel = 'Akord';
+      colorCfg = { fill: '#818cf8', label: 'Ścieżka Akordów / Padów' };
+    } else if (this.activeTrack === 'bass') {
+      trackLabel = 'Bas';
+      colorCfg = { fill: '#fb8500', label: 'Ścieżka Basu' };
+    } else {
+      colorCfg = ROLE_COLORS[note.role] || ROLE_COLORS.chord_tone;
+    }
 
-    const line1 = `Klocek: ${note.noteName} (MIDI ${note.pitch})`;
+    const line1 = `[${trackLabel}] ${note.noteName} (MIDI ${note.pitch})`;
     const line2 = `Rola: ${colorCfg.label}`;
     const line3 = `Takt ${(note.startBeat / 4 + 1).toFixed(2)} | Trwanie: ${note.durationBeats.toFixed(2)} uderz.`;
 

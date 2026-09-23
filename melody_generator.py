@@ -498,31 +498,143 @@ def encode_variable_length(value: int) -> bytes:
     return bytes(result)
 
 GM_INSTRUMENTS = {
-    # Lead
+    # --- 1. Klawiszowe i Pianina (Piano, Organ, Accordion) ---
     'piano': 0,
+    'acoustic_grand_piano': 0,
+    'bright_acoustic_piano': 1,
+    'electric_grand_piano': 2,
+    'honky_tonk_piano': 3,
     'rhodes': 4,
-    'synth_lead': 81,
-    'chiptune': 80,
-    'pluck': 12,
-    'vibraphone': 11,
-    'flute': 73,
-    'guitar': 24,
-
-    # Pad
-    'warm_analog': 89,
-    'shimmer': 91,
-    'strings': 48,
-    'brass': 62,
+    'electric_piano_1': 4,
+    'electric_piano_2': 5,
+    'dx7': 5,
+    'harpsichord': 6,
+    'clavinet': 7,
+    'drawbar_organ': 16,
+    'hammond': 16,
+    'percussive_organ': 17,
+    'rock_organ': 18,
     'organ': 19,
+    'church_organ': 19,
+    'reed_organ': 20,
+    'accordion': 21,
+    'harmonica': 22,
+    'bandoneon': 23,
+
+    # --- 2. Smyczkowe i Orkiestrowe (Strings & Orchestral) ---
+    'violin': 40,
+    'viola': 41,
+    'cello': 42,
+    'contrabass': 43,
+    'tremolo_strings': 44,
+    'pizzicato_strings': 45,
+    'orchestral_harp': 46,
+    'timpani': 47,
+    'strings': 48,
+    'string_ensemble_1': 48,
+    'string_ensemble_2': 49,
+    'synth_strings_1': 50,
+    'synth_strings_2': 51,
+
+    # --- 3. Gitary i Instrumenty Szarpane (Guitars & Plucked) ---
+    'guitar': 24,
+    'acoustic_guitar_nylon': 24,
+    'acoustic_guitar_steel': 25,
+    'electric_guitar_jazz': 26,
+    'electric_guitar_clean': 27,
+    'electric_guitar_muted': 28,
+    'overdriven_guitar': 29,
+    'distortion_guitar': 30,
+    'guitar_harmonics': 31,
+    'sitar': 104,
+    'banjo': 105,
+    'shamisen': 106,
+    'koto': 107,
+
+    # --- 4. Dęte Blaszane (Brass) ---
+    'trumpet': 56,
+    'trombone': 57,
+    'tuba': 58,
+    'muted_trumpet': 59,
+    'french_horn': 60,
+    'brass_section': 61,
+    'brass': 62,
+    'synth_brass_1': 62,
+    'synth_brass_2': 63,
+
+    # --- 5. Dęte Drewniane i Saksofony (Woodwinds & Saxophones) ---
+    'soprano_sax': 64,
+    'alto_sax': 65,
+    'tenor_sax': 66,
+    'baritone_sax': 67,
+    'oboe': 68,
+    'english_horn': 69,
+    'bassoon': 70,
+    'clarinet': 71,
+    'piccolo': 72,
+    'flute': 73,
+    'recorder': 74,
+    'pan_flute': 75,
+    'shakuhachi': 77,
+    'whistle': 78,
+    'ocarina': 79,
+
+    # --- 6. Basy (Acoustic, Electric & Synth Bass) ---
+    'upright': 32,
+    'acoustic_bass': 32,
+    'electric_bass_finger': 33,
+    'picked': 34,
+    'electric_bass_pick': 34,
+    'fretless_bass': 35,
+    'slap_bass_1': 36,
+    'slap_bass_2': 37,
+    'moog': 38,
+    'synth_bass_1': 38,
+    'acid': 38,
+    'sub': 39,
+    'synth_bass_2': 39,
+    'boom808': 39,
+
+    # --- 7. Syntezatory Lead (Synth Leads) ---
+    'chiptune': 80,
+    'lead_square': 80,
+    'synth_lead': 81,
+    'lead_sawtooth': 81,
+    'lead_calliope': 82,
+    'lead_chiff': 83,
+    'lead_charang': 84,
+    'lead_voice': 85,
+    'lead_fifths': 86,
+    'lead_bass_lead': 87,
+
+    # --- 8. Pady, Chóry i Tła (Pads & Choirs) ---
+    'pad_new_age': 88,
+    'warm_analog': 89,
+    'pad_warm': 89,
+    'pad_polysynth': 90,
+    'shimmer': 91,
+    'pad_choir': 91,
+    'pad_bowed': 92,
+    'pad_metallic': 93,
+    'pad_halo': 94,
+    'pad_sweep': 95,
+    'choir_aahs': 52,
+    'voice_oohs': 53,
+    'synth_voice': 54,
     'lofi': 5,
 
-    # Bass
-    'moog': 38,
-    'sub': 39,
-    'upright': 32,
-    'picked': 34,
-    'acid': 38,
-    'boom808': 39
+    # --- 9. Melodyczne Perkusyjne i Dzwonki (Chromatic Percussion) ---
+    'celesta': 8,
+    'glockenspiel': 9,
+    'music_box': 10,
+    'vibraphone': 11,
+    'pluck': 12,
+    'marimba': 12,
+    'xylophone': 13,
+    'tubular_bells': 14,
+    'dulcimer': 15,
+    'kalimba': 108,
+    'steel_drums': 114
 }
 
 class MidiTrack:
@@ -667,13 +779,13 @@ def main():
                         choices=['pad', 'arpeggio', 'rhythmic_comp'],
                         help="Styl akompaniamentu harmonicznego")
     parser.add_argument('--lead-instrument', type=str, default='piano',
-                        choices=['piano', 'rhodes', 'synth_lead', 'chiptune', 'pluck', 'vibraphone', 'flute', 'guitar'],
+                        choices=list(GM_INSTRUMENTS.keys()),
                         help="Barwa instrumentu prowadzącego (General MIDI)")
     parser.add_argument('--pad-instrument', type=str, default='warm_analog',
-                        choices=['warm_analog', 'shimmer', 'strings', 'brass', 'organ', 'lofi'],
+                        choices=list(GM_INSTRUMENTS.keys()),
                         help="Barwa akompaniamentu akordowego")
     parser.add_argument('--bass-instrument', type=str, default='moog',
-                        choices=['moog', 'sub', 'upright', 'picked', 'acid', 'boom808'],
+                        choices=list(GM_INSTRUMENTS.keys()),
                         help="Barwa linii basowej")
     parser.add_argument('--bars', type=int, default=8, help="Liczba taktów")
     parser.add_argument('--bpm', type=int, default=120, help="Tempo w BPM")

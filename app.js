@@ -1,17 +1,19 @@
 /**
- * Harmonic Forge - Main Application Controller V2.1
+ * Harmonic Forge - Main Application Controller V2.2
  * Features:
  * - Algorithmic Melody Generation based on Music Theory
  * - Interactive MIDI Block Arranger & Editor (Draw, Move, Resize, Delete)
  * - Real-time Note Audio Previews
  * - Motif Pattern Insertion & Undo Support
- * - Multi-track MIDI Export
+ * - Multi-track MIDI Export with Full General MIDI (GM) Bank
+ * - Modern Interactive Instrument Selection Modal with Category Filtering and Search
  */
 
 import { MelodicEngine, midiToNoteName, createPatternBlock, SCALES } from './music-theory.js';
 import { exportCompositionToMidi } from './midi-writer.js';
 import { AudioEngine } from './synth.js';
 import { PianoRoll } from './piano-roll.js';
+import { INSTRUMENT_CATEGORIES, INSTRUMENT_CATALOG, getInstrumentById } from './instruments-catalog.js';
 
 // DOM Elements
 const elements = {
@@ -53,6 +55,42 @@ const elements = {
   toggleChords: document.getElementById('toggleChords'),
   toggleBass: document.getElementById('toggleBass'),
 
+  // Master FX
+  sliderReverb: document.getElementById('sliderReverb'),
+  reverbVal: document.getElementById('reverbVal'),
+  sliderDelay: document.getElementById('sliderDelay'),
+  delayVal: document.getElementById('delayVal'),
+
+  // Instrument Trigger Cards
+  triggerLead: document.getElementById('triggerLead'),
+  triggerLeadIcon: document.getElementById('triggerLeadIcon'),
+  triggerLeadName: document.getElementById('triggerLeadName'),
+  triggerLeadSub: document.getElementById('triggerLeadSub'),
+  btnPreviewLeadCard: document.getElementById('btnPreviewLeadCard'),
+
+  triggerPad: document.getElementById('triggerPad'),
+  triggerPadIcon: document.getElementById('triggerPadIcon'),
+  triggerPadName: document.getElementById('triggerPadName'),
+  triggerPadSub: document.getElementById('triggerPadSub'),
+  btnPreviewPadCard: document.getElementById('btnPreviewPadCard'),
+
+  triggerBass: document.getElementById('triggerBass'),
+  triggerBassIcon: document.getElementById('triggerBassIcon'),
+  triggerBassName: document.getElementById('triggerBassName'),
+  triggerBassSub: document.getElementById('triggerBassSub'),
+  btnPreviewBassCard: document.getElementById('btnPreviewBassCard'),
+
+  // Instrument Modal
+  instrumentModal: document.getElementById('instrumentModal'),
+  modalHeaderIcon: document.getElementById('modalHeaderIcon'),
+  modalTargetTitle: document.getElementById('modalTargetTitle'),
+  btnCloseInstrumentModal: document.getElementById('btnCloseInstrumentModal'),
+  btnModalDone: document.getElementById('btnModalDone'),
+  instrumentSearchInput: document.getElementById('instrumentSearchInput'),
+  btnClearSearch: document.getElementById('btnClearSearch'),
+  modalCategoryTabs: document.getElementById('modalCategoryTabs'),
+  instrumentTilesGrid: document.getElementById('instrumentTilesGrid'),
+
   // Transport
   btnGenerate: document.getElementById('btnGenerate'),
   btnPlayPause: document.getElementById('btnPlayPause'),
@@ -69,6 +107,15 @@ const elements = {
 
   pianoRollContainer: document.getElementById('pianoRollContainer'),
   btnDownloadMidi: document.getElementById('btnDownloadMidi'),
+
+  // Multi-Track Arranger Tabs
+  tabTrackMelody: document.getElementById('tabTrackMelody'),
+  tabTrackChords: document.getElementById('tabTrackChords'),
+  tabTrackBass: document.getElementById('tabTrackBass'),
+  badgeMelodyCount: document.getElementById('badgeMelodyCount'),
+  badgeChordsCount: document.getElementById('badgeChordsCount'),
+  badgeBassCount: document.getElementById('badgeBassCount'),
+  trackEditingInfoText: document.getElementById('trackEditingInfoText'),
 
   // MIDI Block Arranger Toolbar
   toolDraw: document.getElementById('toolDraw'),
@@ -97,12 +144,17 @@ const elements = {
   presetModal: document.getElementById('presetModal')
 };
 
-// Core Instances
+// Core Instances & State
 const audio = new AudioEngine();
 let pianoRoll = null;
 let currentComposition = null;
 let isLooping = true;
 const undoStack = [];
+
+// Instrument Modal State
+let currentModalSlot = 'lead'; // 'lead' | 'pad' | 'bass'
+let currentCategoryFilter = 'all';
+let currentSearchQuery = '';
 
 function init() {
   pianoRoll = new PianoRoll(elements.pianoRollContainer, {
@@ -112,13 +164,14 @@ function init() {
         updatePlayState(true);
       }
     },
-    onNotePreview: (pitch) => {
-      // Instant audio preview when drawing or moving a block!
-      audio.previewNote(pitch, 0.35, 95);
+    onNotePreview: (pitch, track) => {
+      // Instant audio preview when drawing or moving a block using the active track's instrument!
+      audio.previewNote(pitch, 0.35, 95, track);
     },
     onCompositionChange: () => {
       if (currentComposition) {
         saveUndoState();
+        updateTrackBadges();
         updateMetrics(currentComposition);
       }
     }
@@ -139,21 +192,257 @@ function init() {
   };
 
   setupEventListeners();
+  updateTriggerCards();
   generateNewMelody();
 }
 
+function updateTrackBadges() {
+  if (!currentComposition) return;
+  const melLen = currentComposition.melodyNotes ? currentComposition.melodyNotes.length : 0;
+  const chLen = currentComposition.chordNotes ? currentComposition.chordNotes.length : 0;
+  const bassLen = currentComposition.bassNotes ? currentComposition.bassNotes.length : 0;
+
+  if (elements.badgeMelodyCount) elements.badgeMelodyCount.textContent = `${melLen} nut`;
+  if (elements.badgeChordsCount) elements.badgeChordsCount.textContent = `${chLen} nut`;
+  if (elements.badgeBassCount) elements.badgeBassCount.textContent = `${bassLen} nut`;
+}
+
 function saveUndoState() {
-  if (!currentComposition || !currentComposition.melodyNotes) return;
-  const snapshot = JSON.stringify(currentComposition.melodyNotes);
+  if (!currentComposition) return;
+  const snapshot = JSON.stringify({
+    melodyNotes: currentComposition.melodyNotes ? [...currentComposition.melodyNotes] : [],
+    chordNotes: currentComposition.chordNotes ? [...currentComposition.chordNotes] : [],
+    bassNotes: currentComposition.bassNotes ? [...currentComposition.bassNotes] : []
+  });
   if (undoStack.length === 0 || undoStack[undoStack.length - 1] !== snapshot) {
     undoStack.push(snapshot);
     if (undoStack.length > 30) undoStack.shift();
   }
 }
 
+// =========================================================================
+// INSTRUMENT TRIGGER CARDS & MODAL MANAGEMENT
+// =========================================================================
+
+function updateTriggerCards() {
+  const leadId = elements.selectInstrument ? elements.selectInstrument.value : 'piano';
+  const leadInst = getInstrumentById(leadId);
+  if (elements.triggerLeadIcon) elements.triggerLeadIcon.textContent = leadInst.icon;
+  if (elements.triggerLeadName) elements.triggerLeadName.textContent = leadInst.name;
+  if (elements.triggerLeadSub) elements.triggerLeadSub.textContent = `${leadInst.categoryLabel} • GM ${leadInst.gmNumber}`;
+
+  const padId = elements.selectPadInstrument ? elements.selectPadInstrument.value : 'warm_analog';
+  const padInst = getInstrumentById(padId);
+  if (elements.triggerPadIcon) elements.triggerPadIcon.textContent = padInst.icon;
+  if (elements.triggerPadName) elements.triggerPadName.textContent = padInst.name;
+  if (elements.triggerPadSub) elements.triggerPadSub.textContent = `${padInst.categoryLabel} • GM ${padInst.gmNumber}`;
+
+  const bassId = elements.selectBassInstrument ? elements.selectBassInstrument.value : 'moog';
+  const bassInst = getInstrumentById(bassId);
+  if (elements.triggerBassIcon) elements.triggerBassIcon.textContent = bassInst.icon;
+  if (elements.triggerBassName) elements.triggerBassName.textContent = bassInst.name;
+  if (elements.triggerBassSub) elements.triggerBassSub.textContent = `${bassInst.categoryLabel} • GM ${bassInst.gmNumber}`;
+}
+
+function openInstrumentModal(slot) {
+  currentModalSlot = slot;
+  currentSearchQuery = '';
+  if (elements.instrumentSearchInput) {
+    elements.instrumentSearchInput.value = '';
+  }
+  if (elements.btnClearSearch) {
+    elements.btnClearSearch.style.display = 'none';
+  }
+
+  // Set titles and default categories based on slot
+  if (slot === 'lead') {
+    if (elements.modalHeaderIcon) elements.modalHeaderIcon.textContent = '🎹';
+    if (elements.modalTargetTitle) elements.modalTargetTitle.textContent = 'Wybierz Instrument Wiodący (Lead)';
+    currentCategoryFilter = 'all';
+  } else if (slot === 'pad') {
+    if (elements.modalHeaderIcon) elements.modalHeaderIcon.textContent = '🌅';
+    if (elements.modalTargetTitle) elements.modalTargetTitle.textContent = 'Wybierz Barwę Padu / Akompaniamentu';
+    currentCategoryFilter = 'pady';
+  } else if (slot === 'bass') {
+    if (elements.modalHeaderIcon) elements.modalHeaderIcon.textContent = '🎛️';
+    if (elements.modalTargetTitle) elements.modalTargetTitle.textContent = 'Wybierz Brzmienie Linii Basowej';
+    currentCategoryFilter = 'basy';
+  }
+
+  // Update active category chip
+  if (elements.modalCategoryTabs) {
+    const chips = elements.modalCategoryTabs.querySelectorAll('.modal-cat-chip');
+    chips.forEach(c => {
+      c.classList.toggle('active', c.getAttribute('data-category') === currentCategoryFilter);
+    });
+  }
+
+  renderInstrumentTiles();
+
+  if (elements.instrumentModal) {
+    elements.instrumentModal.style.display = 'flex';
+    elements.instrumentModal.setAttribute('aria-hidden', 'false');
+  }
+
+  setTimeout(() => {
+    if (elements.instrumentSearchInput) {
+      elements.instrumentSearchInput.focus();
+    }
+  }, 60);
+}
+
+function closeInstrumentModal() {
+  if (elements.instrumentModal) {
+    elements.instrumentModal.style.display = 'none';
+    elements.instrumentModal.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function ensureOptionExists(selectEl, inst) {
+  if (!selectEl) return;
+  for (let opt of selectEl.options) {
+    if (opt.value === inst.id) return;
+  }
+  const opt = document.createElement('option');
+  opt.value = inst.id;
+  opt.textContent = `${inst.icon} ${inst.name} (${inst.enName})`;
+  selectEl.appendChild(opt);
+}
+
+function selectInstrumentFromModal(instId) {
+  const inst = getInstrumentById(instId);
+  if (!inst) return;
+
+  if (currentModalSlot === 'lead') {
+    ensureOptionExists(elements.selectInstrument, inst);
+    elements.selectInstrument.value = inst.id;
+    audio.soundPreset = inst.id;
+    audio.previewLead(inst.id);
+  } else if (currentModalSlot === 'pad') {
+    ensureOptionExists(elements.selectPadInstrument, inst);
+    elements.selectPadInstrument.value = inst.id;
+    audio.padPreset = inst.id;
+    audio.previewPad(inst.id);
+  } else if (currentModalSlot === 'bass') {
+    ensureOptionExists(elements.selectBassInstrument, inst);
+    elements.selectBassInstrument.value = inst.id;
+    audio.bassPreset = inst.id;
+    audio.previewBass(inst.id);
+  }
+
+  updateTriggerCards();
+  updateCliPreview();
+  renderInstrumentTiles(); // Refresh active tile border
+}
+
+function renderInstrumentTiles() {
+  if (!elements.instrumentTilesGrid) return;
+  elements.instrumentTilesGrid.innerHTML = '';
+
+  let selectedId = 'piano';
+  if (currentModalSlot === 'lead') {
+    selectedId = elements.selectInstrument ? elements.selectInstrument.value : 'piano';
+  } else if (currentModalSlot === 'pad') {
+    selectedId = elements.selectPadInstrument ? elements.selectPadInstrument.value : 'warm_analog';
+  } else if (currentModalSlot === 'bass') {
+    selectedId = elements.selectBassInstrument ? elements.selectBassInstrument.value : 'moog';
+  }
+
+  const q = currentSearchQuery.trim().toLowerCase();
+
+  const filtered = INSTRUMENT_CATALOG.filter(inst => {
+    // Search query match
+    if (q) {
+      const matchName = inst.name.toLowerCase().includes(q);
+      const matchEn = inst.enName.toLowerCase().includes(q);
+      const matchCat = inst.categoryLabel.toLowerCase().includes(q);
+      const matchId = inst.id.toLowerCase().includes(q);
+      const matchGm = (`gm ${inst.gmNumber}`).includes(q) || inst.gmNumber.toString() === q;
+      if (!matchName && !matchEn && !matchCat && !matchId && !matchGm) {
+        return false;
+      }
+    }
+
+    // Category filter
+    if (currentCategoryFilter !== 'all' && inst.category !== currentCategoryFilter) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    elements.instrumentTilesGrid.innerHTML = `
+      <div class="empty-tiles-state" style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: var(--text-muted);">
+        <div style="font-size: 2.4rem; margin-bottom: 10px;">🔍</div>
+        <p style="font-size: 1rem; margin-bottom: 6px; font-weight: 600; color: var(--text-primary);">Nie znaleziono instrumentu "${q}"</p>
+        <p style="font-size: 0.85rem;">Spróbuj wpisać inną frazę lub przełącz kategorię na "Wszystkie".</p>
+      </div>
+    `;
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  filtered.forEach(inst => {
+    const isSelected = (inst.id === selectedId);
+    const tile = document.createElement('div');
+    tile.className = `instrument-tile ${isSelected ? 'active' : ''}`;
+    tile.dataset.id = inst.id;
+    tile.setAttribute('role', 'button');
+    tile.setAttribute('tabindex', '0');
+    tile.title = `${inst.name} (${inst.enName}) — kliknij, aby wybrać i odsłuchać`;
+
+    tile.innerHTML = `
+      <span class="tile-icon">${inst.icon}</span>
+      <span class="tile-name">${inst.name}</span>
+      <span class="tile-meta">${inst.enName} • GM ${inst.gmNumber}</span>
+      <button type="button" class="btn-tile-preview" data-preview="${inst.id}" title="Odsłuchaj barwę ${inst.name}">▶</button>
+    `;
+
+    // Click on entire tile selects and previews
+    tile.addEventListener('click', (e) => {
+      selectInstrumentFromModal(inst.id);
+    });
+
+    // Enter / Space keys on focused tile
+    tile.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        selectInstrumentFromModal(inst.id);
+      }
+    });
+
+    // Preview button inside tile
+    const previewBtn = tile.querySelector('.btn-tile-preview');
+    if (previewBtn) {
+      previewBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectInstrumentFromModal(inst.id);
+      });
+    }
+
+    fragment.appendChild(tile);
+  });
+
+  elements.instrumentTilesGrid.appendChild(fragment);
+}
+
+// =========================================================================
+// EVENT LISTENERS SETUP
+// =========================================================================
+
 function setupEventListeners() {
-  // Global Keyboard Shortcuts (Space = Play/Pause, Delete = Delete selected notes)
+  // Global Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
+    // Esc: Close instrument modal if open
+    if (e.code === 'Escape' || e.key === 'Escape') {
+      if (elements.instrumentModal && elements.instrumentModal.style.display !== 'none') {
+        e.preventDefault();
+        closeInstrumentModal();
+        return;
+      }
+    }
+
     // Ignore shortcuts when editing text or form fields
     const tag = e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
@@ -185,6 +474,114 @@ function setupEventListeners() {
     }
   });
 
+  // Instrument Trigger Cards -> Open Modal
+  if (elements.triggerLead) {
+    elements.triggerLead.addEventListener('click', (e) => {
+      if (e.target.closest('#btnPreviewLeadCard')) return;
+      openInstrumentModal('lead');
+    });
+  }
+  if (elements.btnPreviewLeadCard) {
+    elements.btnPreviewLeadCard.addEventListener('click', (e) => {
+      e.stopPropagation();
+      audio.previewLead(elements.selectInstrument ? elements.selectInstrument.value : 'piano');
+    });
+  }
+
+  if (elements.triggerPad) {
+    elements.triggerPad.addEventListener('click', (e) => {
+      if (e.target.closest('#btnPreviewPadCard')) return;
+      openInstrumentModal('pad');
+    });
+  }
+  if (elements.btnPreviewPadCard) {
+    elements.btnPreviewPadCard.addEventListener('click', (e) => {
+      e.stopPropagation();
+      audio.previewPad(elements.selectPadInstrument ? elements.selectPadInstrument.value : 'warm_analog');
+    });
+  }
+
+  if (elements.triggerBass) {
+    elements.triggerBass.addEventListener('click', (e) => {
+      if (e.target.closest('#btnPreviewBassCard')) return;
+      openInstrumentModal('bass');
+    });
+  }
+  if (elements.btnPreviewBassCard) {
+    elements.btnPreviewBassCard.addEventListener('click', (e) => {
+      e.stopPropagation();
+      audio.previewBass(elements.selectBassInstrument ? elements.selectBassInstrument.value : 'moog');
+    });
+  }
+
+  // Instrument Modal Close / Done / Backdrop Buttons
+  if (elements.btnCloseInstrumentModal) {
+    elements.btnCloseInstrumentModal.addEventListener('click', closeInstrumentModal);
+  }
+  if (elements.btnModalDone) {
+    elements.btnModalDone.addEventListener('click', closeInstrumentModal);
+  }
+  if (elements.instrumentModal) {
+    elements.instrumentModal.addEventListener('click', (e) => {
+      if (e.target === elements.instrumentModal) {
+        closeInstrumentModal();
+      }
+    });
+  }
+
+  // Category Tabs Filter
+  if (elements.modalCategoryTabs) {
+    elements.modalCategoryTabs.addEventListener('click', (e) => {
+      const chip = e.target.closest('.modal-cat-chip');
+      if (!chip) return;
+      currentCategoryFilter = chip.getAttribute('data-category') || 'all';
+      const chips = elements.modalCategoryTabs.querySelectorAll('.modal-cat-chip');
+      chips.forEach(c => c.classList.toggle('active', c === chip));
+      renderInstrumentTiles();
+    });
+  }
+
+  // Search Input & Clear Search
+  if (elements.instrumentSearchInput) {
+    elements.instrumentSearchInput.addEventListener('input', (e) => {
+      currentSearchQuery = e.target.value;
+      if (elements.btnClearSearch) {
+        elements.btnClearSearch.style.display = currentSearchQuery ? 'block' : 'none';
+      }
+      renderInstrumentTiles();
+    });
+  }
+  if (elements.btnClearSearch) {
+    elements.btnClearSearch.addEventListener('click', () => {
+      currentSearchQuery = '';
+      if (elements.instrumentSearchInput) {
+        elements.instrumentSearchInput.value = '';
+        elements.instrumentSearchInput.focus();
+      }
+      elements.btnClearSearch.style.display = 'none';
+      renderInstrumentTiles();
+    });
+  }
+
+  // Multi-Track Arranger Tabs (Lead / Chords / Bass)
+  const trackTabs = [
+    { btn: elements.tabTrackMelody, track: 'melody', name: 'Melodia (Lead)', color: 'var(--accent-cyan)' },
+    { btn: elements.tabTrackChords, track: 'chords', name: 'Akordy / Pady', color: '#a5b4fc' },
+    { btn: elements.tabTrackBass, track: 'bass', name: 'Linia Basu', color: '#ffb703' }
+  ];
+
+  trackTabs.forEach(tab => {
+    if (!tab.btn) return;
+    tab.btn.addEventListener('click', () => {
+      trackTabs.forEach(t => t.btn && t.btn.classList.remove('active'));
+      tab.btn.classList.add('active');
+      pianoRoll.setActiveTrack(tab.track);
+      if (elements.trackEditingInfoText) {
+        elements.trackEditingInfoText.innerHTML = `Edytujesz: <strong style="color: ${tab.color};">${tab.name}</strong> — pozostałe ścieżki widoczne jako ghost notes`;
+      }
+    });
+  });
+
   // Toolbar Tool selection
   const tools = [
     { btn: elements.toolDraw, name: 'draw' },
@@ -205,34 +602,45 @@ function setupEventListeners() {
     pianoRoll.setSnap(e.target.value);
   });
 
-  // Clear notes (Start from blank canvas)
+  // Clear notes of currently active track
   elements.btnClearNotes.addEventListener('click', () => {
     if (!currentComposition) return;
     saveUndoState();
     audio.stop();
     updatePlayState(false);
-    currentComposition.melodyNotes = [];
+    pianoRoll.setActiveNotes([]);
     pianoRoll.draw();
+    updateTrackBadges();
     updateMetrics(currentComposition);
   });
 
-  // Undo Button
+  // Undo Button (Restores all 3 tracks)
   elements.btnUndo.addEventListener('click', () => {
     if (undoStack.length > 1) {
       undoStack.pop(); // Pop current state
       const prev = JSON.parse(undoStack[undoStack.length - 1]);
-      currentComposition.melodyNotes = prev;
+      if (prev.melodyNotes !== undefined) {
+        currentComposition.melodyNotes = prev.melodyNotes;
+        currentComposition.chordNotes = prev.chordNotes || [];
+        currentComposition.bassNotes = prev.bassNotes || [];
+      } else {
+        // Fallback for legacy single-track snapshots
+        currentComposition.melodyNotes = prev;
+      }
       pianoRoll.draw();
+      updateTrackBadges();
       updateMetrics(currentComposition);
     }
   });
 
-  // Snap all notes to current scale
+  // Snap active track notes to current scale
   elements.btnSnapScale.addEventListener('click', () => {
-    if (!currentComposition || !currentComposition.melodyNotes) return;
+    if (!currentComposition) return;
+    const activeNotes = pianoRoll.getActiveNotes();
+    if (!activeNotes || activeNotes.length === 0) return;
     saveUndoState();
     const scalePcs = currentComposition.scalePcs;
-    currentComposition.melodyNotes.forEach(n => {
+    activeNotes.forEach(n => {
       let pc = n.pitch % 12;
       if (!scalePcs.includes(pc)) {
         // Adjust by 1 semitone to nearest scale degree
@@ -242,6 +650,7 @@ function setupEventListeners() {
       }
     });
     pianoRoll.draw();
+    updateTrackBadges();
     updateMetrics(currentComposition);
   });
 
@@ -270,14 +679,32 @@ function setupEventListeners() {
       currentComposition.keyRoot,
       currentComposition.scalePcs
     );
-    currentComposition.melodyNotes.push(...newNotes);
-    currentComposition.melodyNotes.sort((a, b) => a.startBeat - b.startBeat);
+
+    // Adjust pitch range for the active track
+    if (pianoRoll.activeTrack === 'bass') {
+      newNotes.forEach(n => {
+        n.pitch = Math.max(28, n.pitch - 24);
+        n.noteName = midiToNoteName(n.pitch);
+        n.role = 'chord_tone';
+      });
+    } else if (pianoRoll.activeTrack === 'chords') {
+      newNotes.forEach(n => {
+        n.pitch = Math.max(48, n.pitch - 12);
+        n.noteName = midiToNoteName(n.pitch);
+        n.role = 'chord_tone';
+      });
+    }
+
+    const activeNotes = pianoRoll.getActiveNotes();
+    activeNotes.push(...newNotes);
+    activeNotes.sort((a, b) => a.startBeat - b.startBeat);
     pianoRoll.draw();
+    updateTrackBadges();
     updateMetrics(currentComposition);
 
-    // Audio preview of first note
+    // Audio preview of first note using matching timbre
     if (newNotes.length > 0) {
-      audio.previewNote(newNotes[0].pitch, 0.4, 95);
+      audio.previewNote(newNotes[0].pitch, 0.4, 95, pianoRoll.activeTrack);
     }
   }
 
@@ -358,22 +785,42 @@ function setupEventListeners() {
     elements.articulationVal.textContent = `${e.target.value}%`;
   });
 
-  // Instrument selections & instant audio previews
+  // Master Spatial Effects (Reverb & Delay)
+  if (elements.sliderReverb) {
+    elements.sliderReverb.addEventListener('input', (e) => {
+      const pct = parseInt(e.target.value, 10);
+      elements.reverbVal.textContent = `${pct}%`;
+      audio.setReverb(pct / 100);
+    });
+  }
+
+  if (elements.sliderDelay) {
+    elements.sliderDelay.addEventListener('input', (e) => {
+      const pct = parseInt(e.target.value, 10);
+      elements.delayVal.textContent = `${pct}%`;
+      audio.setDelay(pct / 100);
+    });
+  }
+
+  // Hidden Select changes -> update audio, trigger cards & CLI
   elements.selectInstrument.addEventListener('change', (e) => {
     audio.soundPreset = e.target.value;
     audio.previewLead(e.target.value);
+    updateTriggerCards();
     updateCliPreview();
   });
 
   elements.selectPadInstrument.addEventListener('change', (e) => {
     audio.padPreset = e.target.value;
     audio.previewPad(e.target.value);
+    updateTriggerCards();
     updateCliPreview();
   });
 
   elements.selectBassInstrument.addEventListener('change', (e) => {
     audio.bassPreset = e.target.value;
     audio.previewBass(e.target.value);
+    updateTriggerCards();
     updateCliPreview();
   });
 
@@ -413,7 +860,7 @@ function setupEventListeners() {
   elements.presetBach.addEventListener('click', () => {
     applyPreset({
       key: 'D', scale: 'major', prog: 'classical_canon', contour: 'arch',
-      density: 'dense', rhythm: 'straight', instrument: 'pluck', padInstrument: 'organ', bassInstrument: 'upright', bpm: 116, accompaniment: 'arpeggio'
+      density: 'dense', rhythm: 'straight', instrument: 'harpsichord', padInstrument: 'organ', bassInstrument: 'upright', bpm: 116, accompaniment: 'arpeggio'
     });
   });
 
@@ -463,14 +910,17 @@ function applyPreset(cfg) {
   elements.selectAccompaniment.value = cfg.accompaniment;
 
   if (cfg.instrument) {
+    ensureOptionExists(elements.selectInstrument, getInstrumentById(cfg.instrument));
     elements.selectInstrument.value = cfg.instrument;
     audio.soundPreset = cfg.instrument;
   }
   if (cfg.padInstrument) {
+    ensureOptionExists(elements.selectPadInstrument, getInstrumentById(cfg.padInstrument));
     elements.selectPadInstrument.value = cfg.padInstrument;
     audio.padPreset = cfg.padInstrument;
   }
   if (cfg.bassInstrument) {
+    ensureOptionExists(elements.selectBassInstrument, getInstrumentById(cfg.bassInstrument));
     elements.selectBassInstrument.value = cfg.bassInstrument;
     audio.bassPreset = cfg.bassInstrument;
   }
@@ -478,6 +928,7 @@ function applyPreset(cfg) {
   elements.bpmSlider.value = cfg.bpm;
   elements.bpmValue.textContent = `${cfg.bpm} BPM`;
 
+  updateTriggerCards();
   generateNewMelody();
 }
 
@@ -547,6 +998,7 @@ function generateNewMelody() {
   saveUndoState();
 
   updateMetrics(currentComposition);
+  updateTrackBadges();
   updateCliPreview();
 
   if (wasPlaying) {

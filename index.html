@@ -344,40 +344,187 @@
           </div>
 
           <div class="form-group">
-            <label for="selectInstrument">Barwa instrumentu wiodącego (Lead):</label>
-            <select id="selectInstrument" class="select-custom">
-              <option value="piano" selected>🎹 Fortepian Koncertowy (Grand Piano)</option>
-              <option value="rhodes">✨ Neo-Soul Rhodes (FM Bell Tine)</option>
-              <option value="synth_lead">⚡ Analog 80s Synth Lead (Resonant Filter)</option>
-              <option value="chiptune">👾 8-Bit Arcade Chiptune (Retro Square)</option>
-              <option value="pluck">💎 Kryształowa Marimba / Pluck</option>
-              <option value="vibraphone">🎶 Jazzy Wibrafon (Vibraphone & Tremolo)</option>
-              <option value="flute">🍃 Eteryczny Flet Drewniany (Ethereal Flute)</option>
-              <option value="guitar">🎸 Gitara Klasyczna (Acoustic Nylon Guitar)</option>
+            <label>Barwa instrumentu wiodącego (Lead):</label>
+            <div class="instrument-trigger-card" id="triggerLead" data-slot="lead" title="Kliknij, aby otworzyć bibliotekę barw instrumentu wiodącego">
+              <div class="card-left">
+                <span class="card-icon" id="triggerLeadIcon">🎹</span>
+                <div class="card-text">
+                  <span class="card-title" id="triggerLeadName">Fortepian Koncertowy</span>
+                  <span class="card-subtitle" id="triggerLeadSub">Klawiszowe • GM 0</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button type="button" class="btn-card-preview" id="btnPreviewLeadCard" title="Odsłuchaj aktualną barwę">▶</button>
+                <button type="button" class="btn-card-change" tabindex="-1">Zmień ▾</button>
+              </div>
+            </div>
+            <select id="selectInstrument" class="select-custom hidden-select" style="display: none;">
+              <optgroup label="🎹 Instrumenty Klawiszowe & Pianina">
+                <option value="piano" selected>🎹 Fortepian Koncertowy (Grand Piano)</option>
+                <option value="bright_acoustic_piano">🎹 Jasny Fortepian (Bright Piano)</option>
+                <option value="electric_grand_piano">🎹 Elektryczny Fortepian Koncertowy</option>
+                <option value="honky_tonk_piano">🍻 Pianino Honky-Tonk</option>
+                <option value="rhodes">✨ Neo-Soul Rhodes MK I (Bell Tine)</option>
+                <option value="dx7">💎 Pianino Cyfrowe FM / DX7</option>
+                <option value="harpsichord">🎼 Klawesyn Barokowy (Harpsichord)</option>
+                <option value="clavinet">⚡ Clavinet Funk</option>
+                <option value="drawbar_organ">🎛️ Organy Hammonda (Drawbar Organ)</option>
+                <option value="organ">⛪ Organy Kościelne Piszczałkowe (Pipe Organ)</option>
+                <option value="accordion">🪗 Akordeon Klasyczny (Accordion)</option>
+                <option value="harmonica">🌬️ Harmonijka Ustna (Harmonica)</option>
+                <option value="bandoneon">💃 Bandoneon / Tango Accordion</option>
+              </optgroup>
+              <optgroup label="🎻 Smyczkowe & Orkiestrowe">
+                <option value="violin">🎻 Skrzypce Solo (Violin)</option>
+                <option value="viola">🎻 Altówka (Viola)</option>
+                <option value="cello">🎻 Wiolonczela (Cello)</option>
+                <option value="contrabass">🎻 Kontrabas Orkiestrowy (Contrabass)</option>
+                <option value="strings">🎻 Sekcja Smyczkowa (String Ensemble)</option>
+                <option value="tremolo_strings">🎻 Smyczki Tremolo</option>
+                <option value="pizzicato_strings">🎻 Smyczki Pizzicato (Plucked Strings)</option>
+                <option value="orchestral_harp">🧚 Harfa Orkiestrowa (Concert Harp)</option>
+                <option value="timpani">🥁 Kotły Orkiestrowe (Timpani)</option>
+              </optgroup>
+              <optgroup label="🎸 Gitary & Szarpane">
+                <option value="guitar">🎸 Gitara Klasyczna Nylonowa</option>
+                <option value="acoustic_guitar_steel">🎸 Gitara Akustyczna Stalowa</option>
+                <option value="electric_guitar_jazz">🎸 Gitara Jazzowa Hollowbody</option>
+                <option value="electric_guitar_clean">🎸 Gitara Elektryczna Czysta</option>
+                <option value="electric_guitar_muted">🎸 Gitara Elektryczna Tłumiona</option>
+                <option value="overdriven_guitar">⚡ Gitara Przesterowana (Overdrive Lead)</option>
+                <option value="sitar">🪕 Sitar Indyjski</option>
+                <option value="banjo">🪕 Banjo Country</option>
+                <option value="koto">🎋 Koto Tradycyjne</option>
+              </optgroup>
+              <optgroup label="🎺 Dęte Blaszane (Brass)">
+                <option value="trumpet">🎺 Trąbka Solo (Trumpet)</option>
+                <option value="trombone">🎺 Puzon Suwakowy (Trombone)</option>
+                <option value="french_horn">📯 Waltornia / Róg Francuski</option>
+                <option value="tuba">🎺 Tuba Orkiestrowa</option>
+                <option value="brass_section">🎺 Sekcja Dęta Blaszana (Brass Section)</option>
+                <option value="brass">⚡ Synth Brass 80s (Analog Brass)</option>
+              </optgroup>
+              <optgroup label="🎷 Dęte Drewniane & Saksofony">
+                <option value="flute">🍃 Eteryczny Flet Drewniany (Flute)</option>
+                <option value="piccolo">🍃 Flet Pikolo (Piccolo)</option>
+                <option value="pan_flute">🎋 Fletnia Pana (Pan Flute)</option>
+                <option value="recorder">🍃 Flet Prosty (Recorder)</option>
+                <option value="clarinet">🎶 Klarnet Klasyczny (Clarinet)</option>
+                <option value="oboe">🎶 Obój Francuski (Oboe)</option>
+                <option value="bassoon">🎶 Fagot (Bassoon)</option>
+                <option value="soprano_sax">🎷 Saksofon Sopranowy (Soprano Sax)</option>
+                <option value="alto_sax">🎷 Saksofon Altowy (Alto Sax)</option>
+                <option value="tenor_sax">🎷 Saksofon Tenorowy (Tenor Sax)</option>
+                <option value="baritone_sax">🎷 Saksofon Barytonowy (Baritone Sax)</option>
+              </optgroup>
+              <optgroup label="⚡ Syntezatory Lead">
+                <option value="synth_lead">⚡ Analog 80s Synth Lead (Resonant Saw)</option>
+                <option value="chiptune">👾 8-Bit Arcade Chiptune (Retro Square)</option>
+                <option value="lead_calliope">🎠 Calliope Synth</option>
+                <option value="lead_chiff">💨 Chiff Synth Lead</option>
+                <option value="lead_charang">🎸 Charang Rock Lead</option>
+                <option value="lead_voice">🗣️ Vocal Synth Lead</option>
+                <option value="lead_fifths">🌌 Parallel Fifths Lead</option>
+              </optgroup>
+              <optgroup label="🔔 Melodyczne Perkusyjne">
+                <option value="marimba">💎 Drewniana Marimba (Marimba)</option>
+                <option value="vibraphone">🎶 Jazzy Wibrafon (Vibraphone & Tremolo)</option>
+                <option value="xylophone">🪵 Ksylofon Orkiestrowy (Xylophone)</option>
+                <option value="glockenspiel">🔔 Dzwonki Orkiestrowe (Glockenspiel)</option>
+                <option value="celesta">✨ Celesta Czajkowskiego</option>
+                <option value="music_box">🧸 Pozytywka (Music Box)</option>
+                <option value="tubular_bells">🔔 Dzwony Rurowe (Tubular Bells)</option>
+                <option value="kalimba">🌴 Kalimba / Mbira</option>
+                <option value="steel_drums">🏝️ Stalowe Bębny (Steel Drums)</option>
+              </optgroup>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="selectPadInstrument">Barwa akompaniamentu (Pady / Akordy):</label>
-            <select id="selectPadInstrument" class="select-custom">
-              <option value="warm_analog" selected>🌅 Ciepły Analogowy Pad (Warm Analog Pad)</option>
-              <option value="shimmer">✨ Gwiezdny Pad Shimmer (Ethereal Shimmer)</option>
-              <option value="strings">🎻 Orkiestrowe Smyczki (Symphonic Strings)</option>
-              <option value="brass">🎺 Syntetyczny Brass 80s (80s Synth Brass)</option>
-              <option value="organ">⛪ Organy Kościelne / Sakralne (Pipe Organ)</option>
-              <option value="lofi">☕ Lo-Fi Vintage EP & Chords (Lo-Fi Keys)</option>
+            <label>Barwa akompaniamentu (Pady / Akordy):</label>
+            <div class="instrument-trigger-card" id="triggerPad" data-slot="pad" title="Kliknij, aby otworzyć bibliotekę barw akompaniamentu">
+              <div class="card-left">
+                <span class="card-icon" id="triggerPadIcon">🌅</span>
+                <div class="card-text">
+                  <span class="card-title" id="triggerPadName">Ciepły Analogowy Pad</span>
+                  <span class="card-subtitle" id="triggerPadSub">Pady & Chóry • GM 89</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button type="button" class="btn-card-preview" id="btnPreviewPadCard" title="Odsłuchaj akord padu">▶</button>
+                <button type="button" class="btn-card-change" tabindex="-1">Zmień ▾</button>
+              </div>
+            </div>
+            <select id="selectPadInstrument" class="select-custom hidden-select" style="display: none;">
+              <optgroup label="🌌 Pady & Tła Dźwiękowe">
+                <option value="warm_analog" selected>🌅 Ciepły Analogowy Pad (Warm Analog Pad)</option>
+                <option value="shimmer">✨ Gwiezdny Pad Shimmer (Ethereal Shimmer)</option>
+                <option value="pad_polysynth">🎛️ Polysynth 80s Pad</option>
+                <option value="pad_bowed">🎻 Smyczkowy Pad Bowed</option>
+                <option value="pad_halo">👼 Anielski Pad Halo</option>
+                <option value="lofi">☕ Lo-Fi Vintage EP & Chords</option>
+              </optgroup>
+              <optgroup label="🗣️ Chóry & Głosy Wokalne">
+                <option value="choir_aahs">🗣️ Chór Żeński Aahs (Choir Aahs)</option>
+                <option value="voice_oohs">🗣️ Chór Męski Oohs (Voice Oohs)</option>
+                <option value="synth_voice">🤖 Syntetyczny Chór Wokalny</option>
+              </optgroup>
+              <optgroup label="🎻 Sekcje Orkiestrowe & Smyczkowe">
+                <option value="strings">🎻 Symfoniczne Smyczki (Symphonic Strings)</option>
+                <option value="tremolo_strings">🎻 Smyczki Tremolo</option>
+                <option value="orchestral_harp">🧚 Harfa Koncertowa</option>
+              </optgroup>
+              <optgroup label="🎹 Instrumenty Klawiszowe & Organy">
+                <option value="piano">🎹 Fortepian Koncertowy (Grand Piano)</option>
+                <option value="rhodes">✨ Neo-Soul Rhodes MK I</option>
+                <option value="dx7">💎 Pianino Cyfrowe FM</option>
+                <option value="organ">⛪ Organy Kościelne Sakralne</option>
+                <option value="drawbar_organ">🎛️ Organy Hammonda</option>
+                <option value="accordion">🪗 Akordeon</option>
+              </optgroup>
+              <optgroup label="🎺 Sekcje Dęte (Brass)">
+                <option value="brass">🎺 Syntetyczny Brass 80s</option>
+                <option value="brass_section">🎺 Sekcja Dęta Blaszana</option>
+                <option value="french_horn">📯 Sekcja Waltorni</option>
+              </optgroup>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="selectBassInstrument">Barwa linii basowej (Bassline):</label>
-            <select id="selectBassInstrument" class="select-custom">
-              <option value="moog" selected>🎛️ Analogowy Moog Synth Bass (Funk / Punch)</option>
-              <option value="sub">🔊 Głęboki Sub-Bass (Deep Sine Sub)</option>
-              <option value="upright">🎻 Akustyczny Kontrabas Jazzowy (Upright Bass)</option>
-              <option value="picked">🎸 Elektryczny Bass Kostkowany (Picked Electric Bass)</option>
-              <option value="acid">🧪 Acid 303 Resonant Bass (TB-303 Slide)</option>
-              <option value="boom808">💣 Trap & Hip-Hop 808 Boom Bass</option>
+            <label>Barwa linii basowej (Bassline):</label>
+            <div class="instrument-trigger-card" id="triggerBass" data-slot="bass" title="Kliknij, aby otworzyć bibliotekę barw basu">
+              <div class="card-left">
+                <span class="card-icon" id="triggerBassIcon">🎛️</span>
+                <div class="card-text">
+                  <span class="card-title" id="triggerBassName">Analogowy Moog Synth Bass</span>
+                  <span class="card-subtitle" id="triggerBassSub">Basy • GM 38</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button type="button" class="btn-card-preview" id="btnPreviewBassCard" title="Odsłuchaj nutę basu">▶</button>
+                <button type="button" class="btn-card-change" tabindex="-1">Zmień ▾</button>
+              </div>
+            </div>
+            <select id="selectBassInstrument" class="select-custom hidden-select" style="display: none;">
+              <optgroup label="🎛️ Syntezatory Basu">
+                <option value="moog" selected>🎛️ Analogowy Moog Synth Bass (Funk / Punch)</option>
+                <option value="acid">🧪 Acid 303 Resonant Bass (TB-303 Slide)</option>
+                <option value="sub">🔊 Głęboki Sub-Bass (Deep Sine Sub)</option>
+                <option value="boom808">💣 Trap & Hip-Hop 808 Boom Bass</option>
+              </optgroup>
+              <optgroup label="🎸 Basy Elektryczne">
+                <option value="electric_bass_finger">🎸 Gitara Basowa Palcowa (Finger Bass)</option>
+                <option value="picked">🎸 Elektryczny Bass Kostkowany (Picked Bass)</option>
+                <option value="fretless_bass">🎸 Bas Bezprogowy (Fretless Mwah)</option>
+                <option value="slap_bass_1">🎸 Slap / Funk Bass (Klang Thumb)</option>
+              </optgroup>
+              <optgroup label="🎻 Basy Akustyczne & Niskie Instrumenty">
+                <option value="upright">🎻 Akustyczny Kontrabas Jazzowy (Upright Bass)</option>
+                <option value="contrabass">🎻 Orkiestrowy Kontrabas Smyczkowy</option>
+                <option value="tuba">🎺 Niska Tuba Basowa</option>
+                <option value="bassoon">🎶 Fagot Basowy</option>
+                <option value="baritone_sax">🎷 Saksofon Barytonowy</option>
+              </optgroup>
             </select>
           </div>
 
@@ -404,6 +551,28 @@
               <span class="toggle-slider"></span>
             </label>
           </div>
+
+          <!-- Master Spatial Effects -->
+          <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Przestrzeń & Efekty (Master FX)</span>
+            <span style="font-size: 0.68rem; color: var(--accent-cyan); font-weight: 600;">Ciepłe Studio</span>
+          </div>
+
+          <div class="form-group range-slider-group">
+            <div class="range-header">
+              <span>🏛️ Pogłos (Reverb):</span>
+              <span class="range-val" id="reverbVal">18%</span>
+            </div>
+            <input type="range" id="sliderReverb" min="0" max="100" value="18" step="1">
+          </div>
+
+          <div class="form-group range-slider-group">
+            <div class="range-header">
+              <span>⏱️ Echo (Stereo Delay):</span>
+              <span class="range-val" id="delayVal">0%</span>
+            </div>
+            <input type="range" id="sliderDelay" min="0" max="100" value="0" step="1">
+          </div>
         </div>
 
         <!-- Primary Master Button -->
@@ -417,6 +586,33 @@
       <!-- Center Stage: Piano Roll & MIDI Block Arranger -->
       <section class="center-stage">
         
+        <!-- Track Selection Tabs (Lead / Chords / Bass) -->
+        <div class="track-tabs-bar">
+          <div class="track-tabs-group">
+            <button class="track-tab active" data-track="melody" id="tabTrackMelody" title="Przełącz na edycję ścieżki wiodącej (Lead / Melodia)">
+              <span class="track-tab-dot dot-melody"></span>
+              <span class="track-tab-icon">🎹</span>
+              <span class="track-tab-name">Melodia (Lead)</span>
+              <span class="track-tab-badge" id="badgeMelodyCount">0 nut</span>
+            </button>
+            <button class="track-tab" data-track="chords" id="tabTrackChords" title="Przełącz na edycję ścieżki akordów i padów (Chords)">
+              <span class="track-tab-dot dot-chords"></span>
+              <span class="track-tab-icon">🎼</span>
+              <span class="track-tab-name">Akordy / Pady</span>
+              <span class="track-tab-badge" id="badgeChordsCount">0 nut</span>
+            </button>
+            <button class="track-tab" data-track="bass" id="tabTrackBass" title="Przełącz na edycję ścieżki basu (Bassline)">
+              <span class="track-tab-dot dot-bass"></span>
+              <span class="track-tab-icon">🎸</span>
+              <span class="track-tab-name">Linia Basu</span>
+              <span class="track-tab-badge" id="badgeBassCount">0 nut</span>
+            </button>
+          </div>
+          <div class="track-tabs-info">
+            <span id="trackEditingInfoText">Edytujesz: <strong style="color: var(--accent-cyan);">Melodia (Lead)</strong> — pozostałe ścieżki widoczne jako ghost notes</span>
+          </div>
+        </div>
+
         <!-- MIDI Block Arranger Toolbar -->
         <div class="editor-toolbar">
           <div class="toolbar-group">
@@ -593,6 +789,59 @@
 
     </main>
 
+  <!-- Instrument Picker Modal Window -->
+  <div class="modal-backdrop" id="instrumentModal" style="display: none;" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modalTargetTitle">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-title-icon" id="modalHeaderIcon">🎹</span>
+          <div>
+            <h2 class="modal-title" id="modalTargetTitle">Wybierz Instrument</h2>
+            <p class="modal-subtitle">Biblioteka barw General MIDI — kliknij kafelek, aby odsłuchać i wybrać</p>
+          </div>
+        </div>
+        <button type="button" class="modal-btn-close" id="btnCloseInstrumentModal" title="Zamknij (Esc)">✕</button>
+      </div>
+
+      <!-- Search Box -->
+      <div class="modal-search-row">
+        <div class="modal-search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="instrumentSearchInput" placeholder="Szukaj instrumentu (np. skrzypce, sax, gitara, flet, moog, harfa)..." autocomplete="off">
+          <button type="button" class="btn-clear-search" id="btnClearSearch" style="display: none;" title="Wyczyść szukanie">✕</button>
+        </div>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div class="modal-categories" id="modalCategoryTabs">
+        <button type="button" class="modal-cat-chip active" data-category="all">Wszystkie</button>
+        <button type="button" class="modal-cat-chip" data-category="klawiszowe">🎹 Klawiszowe</button>
+        <button type="button" class="modal-cat-chip" data-category="smyczkowe">🎻 Smyczkowe</button>
+        <button type="button" class="modal-cat-chip" data-category="gitary">🎸 Gitary & Szarpane</button>
+        <button type="button" class="modal-cat-chip" data-category="blaszane">🎺 Dęte Blaszane</button>
+        <button type="button" class="modal-cat-chip" data-category="drewniane">🎷 Dęte Drewniane</button>
+        <button type="button" class="modal-cat-chip" data-category="basy">🎸 Basy</button>
+        <button type="button" class="modal-cat-chip" data-category="syntezatory">⚡ Syntezatory Lead</button>
+        <button type="button" class="modal-cat-chip" data-category="pady">🌌 Pady & Chóry</button>
+        <button type="button" class="modal-cat-chip" data-category="perkusyjne">🔔 Perkusyjne</button>
+      </div>
+
+      <!-- Tiles Scroll Container & Grid -->
+      <div class="modal-tiles-scroll">
+        <div class="modal-tiles-grid" id="instrumentTilesGrid">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <div class="modal-footer-hint">
+          <span>💡</span>
+          <span>Kliknij kafelek, aby odsłuchać i wybrać barwę. Klawisz <kbd>ESC</kbd> zamyka okno.</span>
+        </div>
+        <button type="button" class="btn-modal-done" id="btnModalDone">Gotowe</button>
+      </div>
+    </div>
   </div>
 
   <!-- Application Entry Point -->
